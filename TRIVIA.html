@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Trivia Escolar 🎓</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: repeating-linear-gradient(
+        45deg,
+        #f0f8ff,
+        #f0f8ff 20px,
+        #e0f7fa 20px,
+        #e0f7fa 40px
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .quiz-container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #1565c0;
+      margin-bottom: 10px;
+    }
+
+    .question {
+      font-size: 22px;
+      margin: 20px 0;
+      color: #333;
+    }
+
+    .icon {
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .option-btn {
+      padding: 12px 20px;
+      border: 2px solid #2196f3;
+      border-radius: 10px;
+      background-color: #e3f2fd;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 16px;
+    }
+
+    .option-btn:hover {
+      background-color: #bbdefb;
+    }
+
+    .option-btn.correct {
+      background-color: #c8e6c9;
+      border-color: #43a047;
+    }
+
+    .option-btn.incorrect {
+      background-color: #ffcdd2;
+      border-color: #e53935;
+    }
+
+    .feedback {
+      font-size: 22px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button.next-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .result {
+      font-size: 22px;
+      margin-top: 20px;
+    }
+
+    .welcome {
+      font-size: 24px;
+      color: #2e7d32;
+      margin-bottom: 10px;
+      animation: fadeInDown 1s;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(1px, 1px); }
+      20% { transform: translate(-1px, -2px); }
+      40% { transform: translate(-3px, 0px); }
+      60% { transform: translate(3px, 2px); }
+      80% { transform: translate(1px, -1px); }
+      100% { transform: translate(1px, 2px); }
+    }
+
+    .shake {
+      animation: shake 0.5s;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container animate__animated animate__fadeIn" id="quizContainer">
+    <div class="welcome animate__animated animate__zoomIn">🎉 ¡Bienvenido/a a la Trivia Escolar!</div>
+    <h1>Trivia Escolar 🎓</h1>
+    <div id="quiz">
+      <div id="icon" class="icon">🌎</div>
+      <div id="question" class="question">Pregunta aparecerá aquí</div>
+      <div id="options" class="options"></div>
+      <div id="feedback" class="feedback"></div>
+      <button class="next-btn hidden" id="nextBtn" onclick="nextQuestion()">Siguiente</button>
+    </div>
+    <div id="result" class="result hidden"></div>
+  </div>
+
+  <script>
+    const quizData = [
+      { icon: "🌎", question: "¿Cuál es el planeta más cercano al Sol?", options: ["Venus", "Tierra", "Mercurio", "Marte"], answer: "Mercurio" },
+      { icon: "📚", question: "¿Quién escribió 'Cien años de soledad'?", options: ["Mario Vargas Llosa", "Gabriel García Márquez", "Julio Cortázar", "Isabel Allende"], answer: "Gabriel García Márquez" },
+      { icon: "🔢", question: "¿Cuál es el resultado de 8 x 7?", options: ["54", "56", "64", "58"], answer: "56" },
+      { icon: "🧪", question: "¿Qué gas respiramos principalmente?", options: ["Dióxido de carbono", "Oxígeno", "Hidrógeno", "Nitrógeno"], answer: "Nitrógeno" },
+      { icon: "🗺️", question: "¿Cuál es la capital de Japón?", options: ["Beijing", "Seúl", "Tokyo", "Bangkok"], answer: "Tokyo" },
+      { icon: "🌋", question: "¿Qué instrumento mide los sismos?", options: ["Termómetro", "Sismógrafo", "Barómetro", "Altímetro"], answer: "Sismógrafo" },
+      { icon: "🐬", question: "¿Qué tipo de animal es el delfín?", options: ["Pez", "Reptil", "Mamífero", "Anfibio"], answer: "Mamífero" },
+      { icon: "📆", question: "¿Cuántos días tiene un año bisiesto?", options: ["365", "360", "366", "364"], answer: "366" },
+      { icon: "🌍", question: "¿Cuál es el país más grande del mundo?", options: ["Canadá", "China", "Brasil", "Rusia"], answer: "Rusia" },
+      { icon: "❤️", question: "¿Qué órgano bombea la sangre en el cuerpo?", options: ["Pulmones", "Cerebro", "Estómago", "Corazón"], answer: "Corazón" }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let errors = 0;
+
+    const questionEl = document.getElementById("question");
+    const iconEl = document.getElementById("icon");
+    const optionsEl = document.getElementById("options");
+    const feedbackEl = document.getElementById("feedback");
+    const nextBtn = document.getElementById("nextBtn");
+    const resultEl = document.getElementById("result");
+    const quizContainer = document.getElementById("quizContainer");
+
+    function loadQuestion() {
+      const q = quizData[currentQuestion];
+      questionEl.textContent = q.question;
+      iconEl.textContent = q.icon;
+      optionsEl.innerHTML = "";
+      feedbackEl.textContent = "";
+      nextBtn.classList.add("hidden");
+      quizContainer.classList.remove("shake");
+
+      q.options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.textContent = option;
+        btn.classList.add("option-btn", "animate__animated", "animate__fadeInUp");
+        btn.onclick = () => checkAnswer(btn, option);
+        optionsEl.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(button, selected) {
+      const correct = quizData[currentQuestion].answer;
+      const buttons = document.querySelectorAll(".option-btn");
+
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent.includes(correct)) {
+          btn.classList.add("correct");
+          btn.textContent += " ✔️";
+        } else if (btn.textContent.includes(selected)) {
+          btn.classList.add("incorrect");
+          btn.textContent += " ❌";
+        }
+      });
+
+      if (selected === correct) {
+        score++;
+        feedbackEl.textContent = "¡Correcto!";
+        feedbackEl.style.color = "#2e7d32";
+      } else {
+        errors++;
+        feedbackEl.textContent = `Incorrecto. Era: ${correct}`;
+        feedbackEl.style.color = "#c62828";
+        if (errors === 3) {
+          quizContainer.classList.add("shake");
+        }
+      }
+
+      nextBtn.classList.remove("hidden");
+    }
+
+    function nextQuestion() {
+      currentQuestion++;
+      if (currentQuestion < quizData.length) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      document.getElementById("quiz").classList.add("hidden");
+      resultEl.classList.remove("hidden");
+      let message = "";
+      if (score === 10) {
+        message = "¡Excelente! 🎉";
+      } else if (score >= 7) {
+        message = "¡Muy bien! 💪";
+      } else if (score >= 5) {
+        message = "¡Buen intento! 👍";
+      } else {
+        message = "¡Sigue practicando! 😊";
+      }
+      resultEl.innerHTML = `<p>Obtuviste <strong>${score}/10</strong></p><p>${message}</p>`;
+    }
+
+    // Inicia la trivia
+    loadQuestion();
+  </script>
+</body>
+</html>
